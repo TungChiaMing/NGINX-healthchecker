@@ -1,0 +1,7 @@
+build
+.env
+dist
+*.spec
+*.log
+ngx-healthcheck-env
+.DS_Store
