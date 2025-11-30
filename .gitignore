@@ -1,7 +1,12 @@
 build
-.env
+*.env
+*.bin
+*.exe
+*.dist
 dist
 *.spec
 *.log
+
 ngx-healthcheck-env
 .DS_Store
+__pycache__

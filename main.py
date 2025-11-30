@@ -6,10 +6,11 @@ from router import HealthCheckService
 from logger import Logger
 
 import argparse
+from util import check_port
 
 def init_argparse():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int, default=8080, help='listening port')
+    parser.add_argument('--port', type=check_port, default=8080, help='listening port')
     parser.add_argument('--log_file', type=str, default='healthcheck_service.log', help='log file path')
     return parser
 

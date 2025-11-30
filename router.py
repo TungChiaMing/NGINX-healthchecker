@@ -49,14 +49,11 @@ class HealthCheckService:
 
     async def get_status(self, status_code: int, request: Request, response: Response):
         """Set the response status code for this GET request using a path parameter"""
-        try:
-            http_status = HTTPStatus(status_code)
-            phrase = http_status.phrase
-        except ValueError:
-            response.status_code = HTTPStatus.BAD_REQUEST.value
-            content = {"message": f"Invalid or unsupported HTTP status code {status_code}", "return status code": response.status_code }
-            request.state.response_body = content
-            return content
+        if (error := self.validate_status_code(status_code, request, response)):
+            return error
+
+        http_status = HTTPStatus(status_code)
+        phrase = http_status.phrase
 
         response.status_code = status_code
         content = {"request": f"{status_code} {phrase}", "return status code": f"{status_code} {phrase}"}
@@ -67,14 +64,11 @@ class HealthCheckService:
         """Set the immediate response status code for this POST request using a JSON body. Body Example: {"status_code": 502}"""
 
         status_code = body.status_code
-        try:
-            http_status = HTTPStatus(status_code)
-            phrase = http_status.phrase
-        except ValueError:
-            response.status_code = HTTPStatus.BAD_REQUEST.value
-            content = {"message": "Invalid or unsupported HTTP status code {status_code}", "return status code": response.status_code}
-            request.state.response_body = content
-            return content
+        if (error := self.validate_status_code(status_code, request, response)):
+            return error
+        
+        http_status = HTTPStatus(status_code)
+        phrase = http_status.phrase
         
         response.status_code = status_code
         content = {"request": f"{status_code} {phrase}", "return status code": f"{status_code} {phrase}"}
@@ -82,12 +76,13 @@ class HealthCheckService:
         return content
 
 
-    async def set_behavior(self, body: BehaviorRequest, request: Request):
+    async def set_behavior(self, body: BehaviorRequest, request: Request, response: Response):
         """Set the Nginx Upstream query response behavior. Body Example: {"rules": [(502, 3), (200, 4)]}"""
         queue = []
         for status_code, cnt in body.rules:
-            if cnt > 0:
-                queue.append(ResponseRule(count=cnt, status_code=status_code))
+            if (error := self.validate_status_code(status_code, request, response)):
+                return error
+            queue.append(ResponseRule(count=cnt, status_code=status_code)) if cnt > 0 else None
 
         self.behavior_queue = queue
 
@@ -145,3 +140,16 @@ class HealthCheckService:
                 logger_instance.exception("Unhandled exception in API route: %s", e)
                 return Response(content='{"error":"internal error"}', status_code=500)
         return wrapper
+    
+    def validate_status_code(self, status_code: int, request: Request, response: Response):
+        try:
+            HTTPStatus(status_code)
+        except ValueError:
+            response.status_code = HTTPStatus.BAD_REQUEST.value
+            content = {
+                "message": f"Invalid or unsupported HTTP status code {status_code}",
+                "return status code": response.status_code
+            }
+            request.state.response_body = content
+            return content
+        return None
