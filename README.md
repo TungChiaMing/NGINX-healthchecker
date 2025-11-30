@@ -28,7 +28,7 @@ The service is implemented using [FastAPI](chatgpt://generic-entity?number=0) an
 
 ---
 
-## 3. How to Run
+## 3. Usage
 
 Run the `exe` directly from the command line:
 
