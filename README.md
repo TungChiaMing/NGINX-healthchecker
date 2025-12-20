@@ -41,6 +41,16 @@ Run the `source code` directly:
 pip install -r requirements.txt
 python3 main.py
 ```
+### 3.1 Docker
+
+```bash
+cd nginx
+docker build -t ngx .
+
+cd ..
+docker build -t ngx-healthchecker .
+docker compose up
+```
 
 ## 4. API Base URL
 

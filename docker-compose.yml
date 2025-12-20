@@ -1,0 +1,79 @@
+version: "3.9"
+
+networks:
+  healthcheck_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.100.0/24
+
+services:
+
+  nginx:
+    image: ngx
+    container_name: nginx
+    cap_add:
+      - NET_ADMIN
+    command: bash -c "nginx -g 'daemon off;' & tail -f /var/log/nginx/access.log /var/log/nginx/error.log"
+    volumes:
+      - ./nginx/docker_backend.conf:/etc/nginx/conf.d/docker_backend.conf:ro
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.100
+    ports:
+      - "8080:8080"
+
+  healthchecker1:
+    image: ngx-healthchecker
+    container_name: healthchecker1
+    cap_add:
+      - NET_ADMIN
+    command: >
+      bash -c "python3 -m project.main --port 8082 && sleep infinity"
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.101
+
+  healthchecker2:
+    image: ngx-healthchecker
+    container_name: healthchecker2
+    cap_add:
+      - NET_ADMIN
+    command: >
+      bash -c "python3 -m project.main --port 8082 && sleep infinity"
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.102
+
+  healthchecker3:
+    image: ngx-healthchecker
+    container_name: healthchecker3
+    cap_add:
+      - NET_ADMIN
+    command: >
+      bash -c "python3 -m project.main --port 8082 && sleep infinity"
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.103
+
+  healthchecker4:
+    image: ngx-healthchecker
+    container_name: healthchecker4
+    cap_add:
+      - NET_ADMIN
+    command: >
+      bash -c "python3 -m project.main --port 8082 && sleep infinity"
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.104
+
+  healthchecker5:
+    image: ngx-healthchecker
+    container_name: healthchecker5
+    cap_add:
+      - NET_ADMIN
+    command: >
+      bash -c "python3 -m project.main --port 8082 && sleep infinity"
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.105

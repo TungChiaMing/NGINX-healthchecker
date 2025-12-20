@@ -4,8 +4,8 @@ from http import HTTPStatus
 from typing import List, Callable, Any
 from functools import wraps
 
-from schema import BehaviorRequest, QueryRequest, StatusRequest, ResponseRule
-from logger import Logger
+from project.schema import BehaviorRequest, QueryRequest, StatusRequest, ResponseRule
+from project.logger import Logger
 
 
 class HealthCheckService:
