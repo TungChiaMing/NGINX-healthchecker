@@ -10,3 +10,5 @@ dist
 ngx-healthcheck-env
 .DS_Store
 __pycache__
+
+/nginx_source/nginx

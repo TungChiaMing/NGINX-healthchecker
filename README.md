@@ -46,6 +46,10 @@ python3 main.py
 ```bash
 cd nginx
 docker build -t ngx .
+# cd nginx_source
+# wget http://nginx.org/download/nginx-1.26.0.tar.gz && tar -xzf nginx-1.26.0.tar.gz
+# cd nginx_source
+# docker build -t ngx-source .
 
 cd ..
 docker build -t ngx-healthchecker .

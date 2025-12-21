@@ -29,6 +29,8 @@ class HealthCheckService:
         self.router.get("/docs/")(self.redirect_docs)
         self.router.get("/redoc/")(self.redirect_redoc)
 
+        self.router.get("/test")(self.handle_exception(self.get_test))
+
         # status routes
         self.router.get("/status/{status_code}")(self.handle_exception(self.get_status))
         self.router.post("/status")(self.handle_exception(self.set_status))
@@ -47,6 +49,19 @@ class HealthCheckService:
         """Redirects /redoc/ back to /redoc"""
         return RedirectResponse(url="/redoc")
 
+    async def get_test(self, status_code: int, request: Request, response: Response):
+        """Set the response status code for this GET request using a path parameter"""
+        if (error := self.validate_status_code(status_code, request, response)):
+            return error
+
+        http_status = HTTPStatus(status_code)
+        phrase = http_status.phrase
+
+        response.status_code = status_code
+        content = {"request": f"{status_code} {phrase}", "return status code": f"{status_code} {phrase}"}
+        request.state.response_body = content
+        return content
+    
     async def get_status(self, status_code: int, request: Request, response: Response):
         """Set the response status code for this GET request using a path parameter"""
         if (error := self.validate_status_code(status_code, request, response)):
