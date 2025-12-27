@@ -63,7 +63,7 @@ RUN mkdir -p /var/log/nginx && \
 
 # RUN rm -rf /build
 
-EXPOSE 80 8080 443
+EXPOSE 80 8080 8081 443 
 STOPSIGNAL SIGQUIT
 
 # CMD ["/usr/sbin/nginx", "-g", "daemon off;"]

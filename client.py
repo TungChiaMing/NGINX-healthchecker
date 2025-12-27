@@ -6,7 +6,7 @@ class HealthCheckerApiClient:
     def __init__(self, base_url: str, logger: Optional[Logger] = None, timeout: int = 10):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
-        self.logger = logger or Logger("HealthCheckerApiClient")
+        self.logger = logger or Logger("HealthCheckerApiClient", log_file="ap.log")
 
     def log_request(self, method: str, url: str, **kwargs):
         self.logger.info(
@@ -16,9 +16,13 @@ class HealthCheckerApiClient:
         )
 
     def log_response(self, method: str, url: str, response: requests.Response):
+        try:
+            body = response.json()
+        except ValueError:
+            body = response.text
         self.logger.info(
             "Response: %s %s | Status: %d | Body: %s",
-            method, url, response.status_code, response.text,
+            method, url, response.status_code, body,
             extra={"method": method, "route": url}
         )
 
@@ -55,12 +59,15 @@ class HealthCheckerApiClient:
 
 # Example usage
 if __name__ == "__main__":
-    client = HealthCheckerApiClient("http://localhost:8080")
+    client = HealthCheckerApiClient("http://localhost:8081/ABO")
 
-    # GET /status/200
-    response = client.get_status(200)
-    print(response.json())
-
-    # POST /status with 502
+    # GET /status/502
     response = client.post_status(502)
-    print(response.json())
+    response = client.post_status(502)
+
+
+    client = HealthCheckerApiClient("http://localhost:8080/CWCP")
+
+    # GET /status/502
+    response = client.post_status(200)
+

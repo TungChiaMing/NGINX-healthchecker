@@ -22,6 +22,7 @@ services:
         ipv4_address: 10.100.100.100
     ports:
       - "8080:8080"
+      - "8081:8081"
 
   healthchecker1:
     image: ngx-healthchecker
@@ -35,7 +36,7 @@ services:
         ipv4_address: 10.100.100.101
 
   healthchecker2:
-    image: ngx-healthchecker-test
+    image: ngx-healthchecker
     container_name: healthchecker2
     cap_add:
       - NET_ADMIN
