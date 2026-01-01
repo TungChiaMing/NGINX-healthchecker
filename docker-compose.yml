@@ -10,13 +10,13 @@ networks:
 services:
 
   nginx:
-    image: ngx-source
+    image: ngx
     container_name: nginx
     cap_add:
       - NET_ADMIN
     command: bash -c "/usr/sbin/nginx -g 'daemon off;'"
     volumes:
-      - ./nginx_source/docker_backend.conf:/etc/nginx/conf.d/docker_backend.conf:ro
+      - ./nginx/docker_backend.conf:/etc/nginx/conf.d/docker_backend.conf:ro
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.100

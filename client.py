@@ -2,6 +2,26 @@ import requests
 from typing import Optional, List, Tuple
 from project.logger import Logger
 
+from locust import HttpUser
+
+class LocustHealthCheckerApiClient:
+    """
+    Locust-friendly client wrapper for HealthCheckerApiClient.
+    support catch_response=True
+    """
+    def __init__(self, locust_client, timeout: int = 10):
+        self.client = locust_client
+        self.timeout = timeout
+
+    def post_status(self, status_code: int, **kwargs):
+        json_body = {"status_code": status_code}
+        return self.client.post("/status", json=json_body, **kwargs)
+
+    def get_status(self, status_code: int, **kwargs):
+        url = f"/status/{status_code}"
+        return self.client.get(url, **kwargs)
+    
+
 class HealthCheckerApiClient:
     def __init__(self, base_url: str, logger: Optional[Logger] = None, timeout: int = 10):
         self.base_url = base_url.rstrip("/")
@@ -59,15 +79,18 @@ class HealthCheckerApiClient:
 
 # Example usage
 if __name__ == "__main__":
-    client = HealthCheckerApiClient("http://localhost:8081/ABO")
-
-    # GET /status/502
-    response = client.post_status(502)
-    response = client.post_status(502)
-
-
-    client = HealthCheckerApiClient("http://localhost:8080/CWCP")
-
-    # GET /status/502
+    client = HealthCheckerApiClient("http://localhost:8080")
     response = client.post_status(200)
+
+    # client = HealthCheckerApiClient("http://localhost:8081/ABO")
+
+    # # GET /status/502
+    # response = client.post_status(502)
+    # response = client.post_status(502)
+
+
+    # client = HealthCheckerApiClient("http://localhost:8080/CWCP")
+
+    # # GET /status/502
+    # response = client.post_status(200)
 
