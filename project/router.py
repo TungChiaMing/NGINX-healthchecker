@@ -17,8 +17,11 @@ class HealthCheckService:
         self.behavior_queue: List[ResponseRule] = []
         self.default_code: int = default_code
 
+        self.get_status_count: int = 0
+
         self.router = APIRouter()
         self.setup_routes()
+
 
     @property
     def get_router(self) -> APIRouter:
@@ -33,13 +36,15 @@ class HealthCheckService:
 
         # status routes
         self.router.get("/status/{status_code}")(self.handle_exception(self.get_status))
-        self.router.post("/status")(self.handle_exception(self.set_status))
+        self.router.post("/status")(self.hㄌandle_exception(self.set_status))
 
         # behavior configuration route
         self.router.post("/behavior")(self.handle_exception(self.set_behavior))
 
         # main query listener route
         self.router.post("/query")(self.handle_exception(self.handle_query))
+
+        self.router.get("/get_status_count")(self.handle_exception(self.get_status_count_api))
 
     async def redirect_docs(self):
         """Redirects /docs/ back to /docs"""
@@ -63,18 +68,20 @@ class HealthCheckService:
         return content
     
     async def get_status(self, status_code: int, request: Request, response: Response):
-        """Set the response status code for this GET request using a path parameter"""
+        self.get_status_count += 1
         if (error := self.validate_status_code(status_code, request, response)):
             return error
-
         http_status = HTTPStatus(status_code)
         phrase = http_status.phrase
-
         response.status_code = status_code
         content = {"request": f"{status_code} {phrase}", "return status code": f"{status_code} {phrase}"}
         request.state.response_body = content
         return content
 
+    async def get_status_count_api(self):
+        """Return the number of times get_status has been accessed"""
+        return {"get_status_count": self.get_status_count}
+    
     async def set_status(self, body: StatusRequest, request: Request, response: Response):
         """Set the immediate response status code for this POST request using a JSON body. Body Example: {"status_code": 502}"""
 

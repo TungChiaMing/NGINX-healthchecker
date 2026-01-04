@@ -1,0 +1,6 @@
+====== Summary ======
+Requests: 10000
+Total time: 20.705 s
+Avg latency: 2.070 ms
+Min latency: 1.092 ms
+Max latency: 118.196 ms

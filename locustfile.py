@@ -2,7 +2,24 @@ from locust import HttpUser, task, between
 import json
 
 
-from client import LocustHealthCheckerApiClient
+class LocustHealthCheckerApiClient:
+    """
+    Locust-friendly client wrapper for HealthCheckerApiClient.
+    support catch_response=True
+    """
+    def __init__(self, locust_client, timeout: int = 10):
+        self.client = locust_client
+        self.timeout = timeout
+
+    def post_status(self, status_code: int, **kwargs):
+        json_body = {"status_code": status_code}
+        return self.client.post("/status", json=json_body, **kwargs)
+
+    def get_status(self, status_code: int, **kwargs):
+        url = f"/status/{status_code}"
+        return self.client.get(url, **kwargs)
+    
+
 
 class ApiUser(HttpUser):
     wait_time = between(0.5, 1.5)

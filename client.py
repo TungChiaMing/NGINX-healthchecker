@@ -1,26 +1,7 @@
 import requests
 from typing import Optional, List, Tuple
 from project.logger import Logger
-
-from locust import HttpUser
-
-class LocustHealthCheckerApiClient:
-    """
-    Locust-friendly client wrapper for HealthCheckerApiClient.
-    support catch_response=True
-    """
-    def __init__(self, locust_client, timeout: int = 10):
-        self.client = locust_client
-        self.timeout = timeout
-
-    def post_status(self, status_code: int, **kwargs):
-        json_body = {"status_code": status_code}
-        return self.client.post("/status", json=json_body, **kwargs)
-
-    def get_status(self, status_code: int, **kwargs):
-        url = f"/status/{status_code}"
-        return self.client.get(url, **kwargs)
-    
+import time
 
 class HealthCheckerApiClient:
     def __init__(self, base_url: str, logger: Optional[Logger] = None, timeout: int = 10):
@@ -46,13 +27,41 @@ class HealthCheckerApiClient:
             extra={"method": method, "route": url}
         )
 
-    def get_status(self, status_code: int) -> requests.Response:
+    # def get_status(self, status_code: int) -> requests.Response:
+    #     url = f"{self.base_url}/status/{status_code}"
+    #     self.log_request("GET", url)
+    #     response = requests.get(url, timeout=self.timeout)
+    #     self.log_response("GET", url, response)
+    #     return response
+
+    def get_status(self, status_code: int, query: any) -> requests.Response:
         url = f"{self.base_url}/status/{status_code}"
+        params = {}
+        if query is not None:
+            params["query"] = query
+
+        self.log_request("GET", url, params=params)
+        response = requests.get(url, params=params, timeout=self.timeout)
+        self.log_response("GET", response.url, response)
+        return response
+    
+    def get_status_count(self) -> Optional[int]:
+        """
+        Call the /status_count endpoint and return the number of times get_status has been accessed.
+        """
+        url = f"{self.base_url}/get_status_count"
         self.log_request("GET", url)
         response = requests.get(url, timeout=self.timeout)
         self.log_response("GET", url, response)
-        return response
 
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                return data.get("get_status_count")
+            except ValueError:
+                return None
+        return None
+    
     def post_status(self, status_code: int) -> requests.Response:
         url = f"{self.base_url}/status"
         json_body = {"status_code": status_code}
@@ -77,10 +86,76 @@ class HealthCheckerApiClient:
         self.log_response("POST", url, response)
         return response
 
+    def benchmark_cache_get_status(
+        self,
+        status_code: int,
+        query: str,
+        iterations: int = 10000,
+        output_file: Optional[str] = "cache_output.txt",
+    ):
+        latencies = []
+
+        for i in range(iterations):
+            start_ts = time.perf_counter()
+            response = self.get_status(status_code, query=query)
+            end_ts = time.perf_counter()
+
+            latency = end_ts - start_ts
+            latencies.append(latency)
+
+            print(f"Req #{i:5d} | status={response.status_code} | time={latency * 1000:.3f} ms")
+
+        total = sum(latencies)
+        count = len(latencies)
+        avg = total / count if count > 0 else 0
+        minimum = min(latencies) if latencies else 0
+        maximum = max(latencies) if latencies else 0
+
+        # prepare summary
+        summary_lines = [
+            "====== Summary ======",
+            f"Requests: {count}",
+            f"Total time: {total:.3f} s",
+            f"Avg latency: {avg * 1000:.3f} ms",
+            f"Min latency: {minimum * 1000:.3f} ms",
+            f"Max latency: {maximum * 1000:.3f} ms",
+        ]
+
+        # print summary
+        for line in summary_lines:
+            print(line)
+
+        # write summary to file
+        if output_file:
+            with open(output_file, "w") as f:
+                for line in summary_lines:
+                    f.write(line + "\n")
+
+        return {
+            "total_time_s": total,
+            "avg_latency_s": avg,
+            "min_latency_s": minimum,
+            "max_latency_s": maximum,
+            "count": count,
+            "latencies": latencies,
+        }
+    
+
 # Example usage
 if __name__ == "__main__":
+    # client = HealthCheckerApiClient("http://localhost:8080")
     client = HealthCheckerApiClient("http://localhost:8080")
-    response = client.post_status(200)
+
+    client.benchmark_cache_get_status(
+        status_code=200,
+        query="SELECT * FROM users WHERE id = 1",
+        iterations=10000,
+        output_file="no_cache_benchmark_output.txt"
+    )
+
+
+    # response = client.get_status_count()
+    # print(f"get_status_count: {response}")
 
     # client = HealthCheckerApiClient("http://localhost:8081/ABO")
 
