@@ -1,6 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import List, Tuple
 
+class SleepRequest(BaseModel):
+    """Receive the sleep time via JSON body for /sleep"""
+    sleep_time: int = Field(
+        ..., description="The time to sleep before responding.",
+        example=5
+    )
 
 class StatusRequest(BaseModel):
     """Receive the status code via JSON body for /status"""

@@ -3,8 +3,10 @@ from typing import Optional, List, Tuple
 from project.logger import Logger
 import time
 
+import threading
+
 class HealthCheckerApiClient:
-    def __init__(self, base_url: str, logger: Optional[Logger] = None, timeout: int = 10):
+    def __init__(self, base_url: str, logger: Optional[Logger] = None, timeout: int = 60):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.logger = logger or Logger("HealthCheckerApiClient", log_file="ap.log")
@@ -141,17 +143,36 @@ class HealthCheckerApiClient:
         }
     
 
+def test_max_conn(client, query: str, num_requests: int = 5):
+    def call_status(i):
+        try:
+            client.get_status(200, query=query)
+            print(f"[Thread {i}] Request finished")
+        except Exception as e:
+            print(f"[Thread {i}] Exception: {e}")
+
+    threads = []
+    for i in range(num_requests):
+        t = threading.Thread(target=call_status, args=(i,))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
 # Example usage
 if __name__ == "__main__":
     # client = HealthCheckerApiClient("http://localhost:8080")
     client = HealthCheckerApiClient("http://localhost:8080")
 
-    client.benchmark_cache_get_status(
-        status_code=200,
-        query="SELECT * FROM users WHERE id = 1",
-        iterations=10000,
-        output_file="no_cache_benchmark_output.txt"
-    )
+    test_max_conn(client, query="", num_requests=2)
+
+    # client.benchmark_cache_get_status(
+    #     status_code=200,
+    #     query="SELECT * FROM users WHERE id = 1",
+    #     iterations=10000,
+    #     output_file="no_cache_benchmark_output.txt"
+    # )
 
 
     # response = client.get_status_count()

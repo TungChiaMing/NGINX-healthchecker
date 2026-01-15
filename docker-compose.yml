@@ -10,13 +10,15 @@ networks:
 services:
 
   nginx:
-    image: ngx
+    image: nginx:latest
     container_name: nginx
     cap_add:
       - NET_ADMIN
     command: bash -c "/usr/sbin/nginx -g 'daemon off;'"
     volumes:
-      - ./nginx/docker_backend.conf:/etc/nginx/conf.d/docker_backend.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/stream.d:/etc/nginx/stream.d:ro
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.100
@@ -24,7 +26,18 @@ services:
       - "8080:8080"
       - "8081:8081"
     mem_limit: 10g
-    cpus: 1.0   
+    cpus: 1.0
+  
+  dbsrv:
+    image: dbsrv
+    container_name: dbsrv
+    cap_add:
+      - NET_ADMIN
+    command: >
+      bash -c "python3 -m dbsrv.main && sleep infinity"
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.200
   
   healthchecker1:
     image: ngx-healthchecker

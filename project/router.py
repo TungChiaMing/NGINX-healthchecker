@@ -4,9 +4,9 @@ from http import HTTPStatus
 from typing import List, Callable, Any
 from functools import wraps
 
-from project.schema import BehaviorRequest, QueryRequest, StatusRequest, ResponseRule
+from project.schema import BehaviorRequest, QueryRequest, StatusRequest, ResponseRule, SleepRequest
 from project.logger import Logger
-
+import asyncio
 
 class HealthCheckService:
     def __init__(self, logger: Logger, default_code: int = 200):
@@ -18,6 +18,7 @@ class HealthCheckService:
         self.default_code: int = default_code
 
         self.get_status_count: int = 0
+        self.sleep_time: int = 0
 
         self.router = APIRouter()
         self.setup_routes()
@@ -36,7 +37,7 @@ class HealthCheckService:
 
         # status routes
         self.router.get("/status/{status_code}")(self.handle_exception(self.get_status))
-        self.router.post("/status")(self.hㄌandle_exception(self.set_status))
+        self.router.post("/status")(self.handle_exception(self.set_status))
 
         # behavior configuration route
         self.router.post("/behavior")(self.handle_exception(self.set_behavior))
@@ -45,6 +46,8 @@ class HealthCheckService:
         self.router.post("/query")(self.handle_exception(self.handle_query))
 
         self.router.get("/get_status_count")(self.handle_exception(self.get_status_count_api))
+
+        self.router.post("/sleep")(self.handle_exception(self.set_sleep))
 
     async def redirect_docs(self):
         """Redirects /docs/ back to /docs"""
@@ -68,9 +71,14 @@ class HealthCheckService:
         return content
     
     async def get_status(self, status_code: int, request: Request, response: Response):
-        self.get_status_count += 1
+
         if (error := self.validate_status_code(status_code, request, response)):
             return error
+        
+        if self.sleep_time > 0:
+            await asyncio.sleep(self.sleep_time)
+
+        self.get_status_count += 1
         http_status = HTTPStatus(status_code)
         phrase = http_status.phrase
         response.status_code = status_code
@@ -81,6 +89,15 @@ class HealthCheckService:
     async def get_status_count_api(self):
         """Return the number of times get_status has been accessed"""
         return {"get_status_count": self.get_status_count}
+
+    async def set_sleep(self, body: SleepRequest, request: Request, response: Response):
+        """Set the sleep time for this POST request using a JSON body. Body Example: {"sleep_time": 5}"""
+
+        self.sleep_time = body.sleep_time
+        content = {"message": f"set sleep time to {self.sleep_time}"}
+        request.state.response_body = content
+        return content
+    
     
     async def set_status(self, body: StatusRequest, request: Request, response: Response):
         """Set the immediate response status code for this POST request using a JSON body. Body Example: {"status_code": 502}"""
