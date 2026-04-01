@@ -56,6 +56,18 @@ docker build -t ngx-healthchecker .
 docker compose up
 ```
 
+
+### 3.2 ssl
+
+```bash
+mkdir -p letsencrypt libletsencrypt www && 
+docker run -it --rm \
+-v $(pwd)/letsencrypt:/etc/letsencrypt \
+-v $(pwd)/libletsencrypt:/var/lib/letsencrypt \
+-v $(pwd)/www:/var/www/html \
+certbot/certbot certonly
+```
+
 ## 4. API Base URL
 
 The service listens on the following base URL by default:

@@ -16,14 +16,23 @@ services:
       - NET_ADMIN
     command: bash -c "/usr/sbin/nginx -g 'daemon off;'"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/stream.d:/etc/nginx/stream.d:ro
+      - ./nginx/docker_backend.conf:/etc/nginx/conf.d/docker_backend.conf:ro
+      - ./nginx/ssl/example.crt:/etc/nginx/ssl/example.crt:ro
+      - ./nginx/ssl/example.key:/etc/nginx/ssl/example.key:ro
+      # - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # - ./nginx/stream.d:/etc/nginx/stream.d:ro
+      #rm -f /var/log/nginx/access.log
+      #rm -f /var/log/nginx/error.log
+      #touch /var/log/nginx/access.log
+      ##touch /var/log/nginx/error.log
+      #chmod 644 /var/log/nginx/*.log
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.100
     ports:
-      - "8080:8080"
+      - "80:80"
+      - "443:443"
       - "8081:8081"
     mem_limit: 10g
     cpus: 1.0

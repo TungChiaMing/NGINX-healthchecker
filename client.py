@@ -165,7 +165,11 @@ if __name__ == "__main__":
     # client = HealthCheckerApiClient("http://localhost:8080")
     client = HealthCheckerApiClient("http://localhost:8080")
 
-    test_max_conn(client, query="", num_requests=2)
+    # test_max_conn(client, query="", num_requests=2)
+
+    for i in range(1000):
+        time.sleep(10)
+        client.get_status(200, query="SELECT * FROM users WHERE id = 1")
 
     # client.benchmark_cache_get_status(
     #     status_code=200,

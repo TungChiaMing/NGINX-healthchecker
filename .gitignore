@@ -12,3 +12,4 @@ ngx-healthcheck-env
 __pycache__
 
 /nginx_source/nginx
+/nginx/ssl
