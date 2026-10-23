@@ -8,15 +8,38 @@ networks:
         - subnet: 10.100.100.0/24
 
 services:
+  nginx-ui:
+      image: 'uozi/nginx-ui:latest'
+      stdin_open: true
+      tty: true
+      container_name: nginx-ui
+      restart: always
+      environment:
+        - TZ=Asia/Shanghai
+      volumes:
+        - ./nginx:/etc/nginx
+        - ./nginx-ui:/etc/nginx-ui
+        - /var/www:/var/www
+        - /var/run/docker.sock:/var/run/docker.sock
+      ports:
+        - "9000:9000"
+        - "9443:9443"
 
   nginx:
     image: nginx:latest
     container_name: nginx
     cap_add:
       - NET_ADMIN
-    command: bash -c "/usr/sbin/nginx -g 'daemon off;'"
+    command: >
+      bash -c "
+        rm -f /var/log/nginx/access.log /var/log/nginx/error.log &&
+        touch /var/log/nginx/access.log /var/log/nginx/error.log &&
+        nginx -g 'daemon off;'
+      "
     volumes:
-      - ./nginx/docker_backend.conf:/etc/nginx/conf.d/docker_backend.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/docker_backend.conf:/etc/nginx/conf.d/00-docker_backend.conf:ro
+      - ./nginx/stream.d/stream.conf:/etc/nginx/stream.d/00-stream.conf:ro
       - ./nginx/ssl/example.crt:/etc/nginx/ssl/example.crt:ro
       - ./nginx/ssl/example.key:/etc/nginx/ssl/example.key:ro
       # - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -36,17 +59,6 @@ services:
       - "8081:8081"
     mem_limit: 10g
     cpus: 1.0
-  
-  dbsrv:
-    image: dbsrv
-    container_name: dbsrv
-    cap_add:
-      - NET_ADMIN
-    command: >
-      bash -c "python3 -m dbsrv.main && sleep infinity"
-    networks:
-      healthcheck_net:
-        ipv4_address: 10.100.100.200
   
   healthchecker1:
     image: ngx-healthchecker
@@ -102,3 +114,14 @@ services:
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.105
+
+  dbsrv:
+    image: dbsrv
+    container_name: dbsrv
+    cap_add:
+      - NET_ADMIN
+    command: >
+      bash -c "python3 -m dbsrv.main && sleep infinity"
+    networks:
+      healthcheck_net:
+        ipv4_address: 10.100.100.200

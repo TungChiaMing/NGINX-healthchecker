@@ -13,3 +13,5 @@ __pycache__
 
 /nginx_source/nginx
 /nginx/ssl
+
+.vscode/
