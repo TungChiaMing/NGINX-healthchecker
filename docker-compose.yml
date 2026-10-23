@@ -1,5 +1,3 @@
-version: "3.9"
-
 networks:
   healthcheck_net:
     driver: bridge
@@ -7,121 +5,92 @@ networks:
       config:
         - subnet: 10.100.100.0/24
 
-services:
-  nginx-ui:
-      image: 'uozi/nginx-ui:latest'
-      stdin_open: true
-      tty: true
-      container_name: nginx-ui
-      restart: always
-      environment:
-        - TZ=Asia/Shanghai
-      volumes:
-        - ./nginx:/etc/nginx
-        - ./nginx-ui:/etc/nginx-ui
-        - /var/www:/var/www
-        - /var/run/docker.sock:/var/run/docker.sock
-      ports:
-        - "9000:9000"
-        - "9443:9443"
+# image is built once by healthchecker1; the other four reuse it
+x-healthchecker: &healthchecker
+  image: ngx-healthchecker
+  pull_policy: never
+  cap_add:
+    - NET_ADMIN
+  command: python3 -m healthchecker.main --port 8082
+  restart: unless-stopped
 
+services:
   nginx:
     image: nginx:latest
     container_name: nginx
     cap_add:
       - NET_ADMIN
-    command: >
-      bash -c "
-        rm -f /var/log/nginx/access.log /var/log/nginx/error.log &&
-        touch /var/log/nginx/access.log /var/log/nginx/error.log &&
-        nginx -g 'daemon off;'
-      "
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d/docker_backend.conf:/etc/nginx/conf.d/00-docker_backend.conf:ro
-      - ./nginx/stream.d/stream.conf:/etc/nginx/stream.d/00-stream.conf:ro
-      - ./nginx/ssl/example.crt:/etc/nginx/ssl/example.crt:ro
-      - ./nginx/ssl/example.key:/etc/nginx/ssl/example.key:ro
-      # - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      # - ./nginx/stream.d:/etc/nginx/stream.d:ro
-      #rm -f /var/log/nginx/access.log
-      #rm -f /var/log/nginx/error.log
-      #touch /var/log/nginx/access.log
-      ##touch /var/log/nginx/error.log
-      #chmod 644 /var/log/nginx/*.log
+      # mount the directory, not the single file: a single-file bind mount keeps the old
+      # inode when an editor replaces the file, so the container sees a stale/truncated copy.
+      # nginx.conf is the only config nginx reads (no include).
+      - ./nginx:/etc/nginx:ro
+      # all nginx logs land in ./nginx/log on the host
+      - ./nginx/log:/var/log/nginx
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.100
     ports:
-      - "80:80"
-      - "443:443"
-      - "8081:8081"
+      - "80:80"       # legacy
+      - "8080:8080"   # legacy copy (split test step 1)
+      - "8081:8081"   # front door (split test step 2)
+      - "8090:8090"   # stream (TCP L4) -> dbsrv:211
     mem_limit: 10g
     cpus: 1.0
-  
+    depends_on:
+      - healthchecker1
+      - healthchecker2
+      - healthchecker3
+      - healthchecker4
+      - healthchecker5
+      - dbsrv
+
   healthchecker1:
-    image: ngx-healthchecker
+    <<: *healthchecker
+    build: ./healthchecker
+    pull_policy: build   # always (re)build on `docker compose up`; cached, so fast
     container_name: healthchecker1
-    cap_add:
-      - NET_ADMIN
-    command: >
-      bash -c "python3 -m project.main --port 8082 && sleep infinity"
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.101
 
   healthchecker2:
-    image: ngx-healthchecker
+    <<: *healthchecker
     container_name: healthchecker2
-    cap_add:
-      - NET_ADMIN
-    command: >
-      bash -c "python3 -m project.main --port 8082 && sleep infinity"
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.102
 
   healthchecker3:
-    image: ngx-healthchecker
+    <<: *healthchecker
     container_name: healthchecker3
-    cap_add:
-      - NET_ADMIN
-    command: >
-      bash -c "python3 -m project.main --port 8082 && sleep infinity"
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.103
 
   healthchecker4:
-    image: ngx-healthchecker
+    <<: *healthchecker
     container_name: healthchecker4
-    cap_add:
-      - NET_ADMIN
-    command: >
-      bash -c "python3 -m project.main --port 8082 && sleep infinity"
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.104
 
   healthchecker5:
-    image: ngx-healthchecker
+    <<: *healthchecker
     container_name: healthchecker5
-    cap_add:
-      - NET_ADMIN
-    command: >
-      bash -c "python3 -m project.main --port 8082 && sleep infinity"
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.105
 
   dbsrv:
+    build: ./dbsrv
     image: dbsrv
+    pull_policy: build
     container_name: dbsrv
     cap_add:
       - NET_ADMIN
-    command: >
-      bash -c "python3 -m dbsrv.main && sleep infinity"
+    command: python3 -m dbsrv.main
+    restart: unless-stopped
     networks:
       healthcheck_net:
         ipv4_address: 10.100.100.200

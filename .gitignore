@@ -12,6 +12,7 @@ ngx-healthcheck-env
 __pycache__
 
 /nginx_source/nginx
-/nginx/ssl
 
 .vscode/
+nginx/log/
+_to_delete/

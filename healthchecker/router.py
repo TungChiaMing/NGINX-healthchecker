@@ -4,8 +4,8 @@ from http import HTTPStatus
 from typing import List, Callable, Any
 from functools import wraps
 
-from project.schema import BehaviorRequest, QueryRequest, StatusRequest, ResponseRule, SleepRequest
-from project.logger import Logger
+from healthchecker.schema import BehaviorRequest, QueryRequest, StatusRequest, ResponseRule, SleepRequest
+from healthchecker.logger import Logger
 import asyncio
 
 class HealthCheckService:
