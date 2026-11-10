@@ -43,30 +43,32 @@ python3 main.py
 ```
 ### 3.1 Docker
 
-```bash
-cd nginx
-docker build -t ngx .
-# cd nginx_source
-# wget http://nginx.org/download/nginx-1.26.0.tar.gz && tar -xzf nginx-1.26.0.tar.gz
-# cd nginx_source
-# docker build -t ngx-source .
-
-cd ..
-docker build -t ngx-healthchecker .
-docker compose up
+```
+NGINX-healthchecker/
+├── docker-compose.yml
+├── nginx_source/          # build nginx from source (separate image, not used by compose)
+├── nginx/
+│   ├── nginx.conf         # the ONLY config nginx reads (no include)
+│   └── log/               # mounted to /var/log/nginx
+├── healthchecker/         # FastAPI upstream (python3 -m healthchecker.main), :8082
+├── dbsrv/                 # TCP L4 test: main.py server (:211, sends RST) + client.cpp
+└── tools/                 # locust / client.py / wrk / split_test.py
 ```
 
-
-### 3.2 ssl
-
 ```bash
-mkdir -p letsencrypt libletsencrypt www && 
-docker run -it --rm \
--v $(pwd)/letsencrypt:/etc/letsencrypt \
--v $(pwd)/libletsencrypt:/var/lib/letsencrypt \
--v $(pwd)/www:/var/www/html \
-certbot/certbot certonly
+docker compose up -d --build      # builds ngx-healthchecker + dbsrv, starts everything
 ```
+
+| Port | Purpose |
+|------|---------|
+| 80   | legacy -> docker_backends |
+| 8080 | identical copy of :80 (split test step 1) |
+| 8081 | front door, 50/50 to :80 / :8080 (split test step 2) |
+| 8090 | stream (TCP L4) -> dbsrv:211 |
+
+Split test: `python3 tools/split_test.py -n 20` (reads `nginx/log/access.json`).
+
+L4 test: `cc dbsrv/client.cpp -o dbsrv/client && ./dbsrv/client`
 
 ## 4. API Base URL
 

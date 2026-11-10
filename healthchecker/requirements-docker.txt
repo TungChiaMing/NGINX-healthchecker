@@ -1,0 +1,6 @@
+# Runtime dependencies for the container (see Dockerfile).
+# requirements.txt is kept for local dev / exe builds.
+fastapi==0.122.0
+uvicorn==0.38.0
+pydantic==2.12.5
+coloredlogs==15.0.1

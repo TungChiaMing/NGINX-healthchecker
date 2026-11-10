@@ -1,0 +1,3 @@
+{
+  "buildCommand": "printf 'window.SPLIT_BACKEND_URL = \"%s\";\\n' \"$SPLIT_BACKEND_URL\" > config.js"
+}

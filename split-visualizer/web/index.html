@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nginx split_clients, live</title>
+  <meta name="description" content="Send real requests through two real Nginx processes and watch split_clients route them.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Nginx <code>split_clients</code>, live</h1>
+      <p class="lede">Every request below goes through two real Nginx processes. The Legacy Nginx hashes a key and either loops the request back to itself or hands it to the New Nginx.</p>
+    </div>
+    <div id="status" class="status status-wait">Connecting…</div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <main id="app" hidden>
+    <section class="card" id="config-card">
+      <h2>1. Legacy Nginx config</h2>
+      <p class="hint">This is the part of <code>nginx.conf</code> you can change. Edit the text or use the controls; they stay in sync. <strong>Apply</strong> runs <code>nginx -t</code> and reloads the real Nginx. The config is shared by everyone using this page.</p>
+
+      <textarea id="editor" spellcheck="false" rows="12" aria-label="Editable nginx config"></textarea>
+      <div id="parse-error" class="error" hidden></div>
+
+      <div class="form">
+        <label class="field">
+          <span>Split key</span>
+          <select id="key"></select>
+        </label>
+        <p id="key-help" class="hint"></p>
+
+        <h3>Buckets</h3>
+        <div id="buckets"></div>
+        <button type="button" class="ghost" id="add-bucket">+ Add bucket</button>
+
+        <h3><code>X-Canary</code> header overrides</h3>
+        <div id="canary"></div>
+        <button type="button" class="ghost" id="add-canary">+ Add override</button>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="apply">Apply to Nginx</button>
+        <button type="button" id="reset">Reset to default</button>
+        <span id="dirty" class="pill" hidden>Unapplied changes</span>
+      </div>
+      <div id="apply-result" class="result" hidden></div>
+      <div id="remote-change" class="notice" hidden></div>
+
+      <details>
+        <summary>Full Legacy <code>nginx.conf</code> (as running now)</summary>
+        <pre id="legacy-conf"></pre>
+      </details>
+      <details>
+        <summary>New Nginx <code>nginx.conf</code></summary>
+        <pre id="new-conf"></pre>
+      </details>
+    </section>
+
+    <section class="card" id="request-card">
+      <h2>2. Send requests</h2>
+      <div class="row">
+        <label class="field">
+          <span><code>X-Canary</code> header</span>
+          <select id="canary-send"></select>
+        </label>
+        <label class="field">
+          <span>Demo user id (<code>?user=</code> and <code>X-User</code>)</span>
+          <input id="user" type="text" maxlength="40" placeholder="e.g. alice">
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" id="random-user"> Use a random user id for each request</label>
+      <div class="actions">
+        <button type="button" class="primary" data-send="1">Send 1</button>
+        <button type="button" data-send="20">Send 20</button>
+        <button type="button" data-send="200">Send 200</button>
+        <span id="progress" class="hint"></span>
+      </div>
+      <div class="actions">
+        <button type="button" id="toggle-new">Stop New Nginx</button>
+        <span id="new-state" class="hint"></span>
+      </div>
+
+      <h3>Message sequence <span id="seq-title" class="hint"></span></h3>
+      <div id="sequence" class="scroll-x"><p class="empty">Send a request to see its path.</p></div>
+
+      <h3>Why it went there</h3>
+      <div id="why"><p class="empty">Nothing sent yet.</p></div>
+      <div id="hashline"></div>
+
+      <details id="trace-box">
+        <summary>Raw access log lines for this request (from both Nginx)</summary>
+        <pre id="trace">Select a request.</pre>
+      </details>
+    </section>
+
+    <section class="card" id="stats-card">
+      <h2>3. Distribution</h2>
+      <p class="hint">Expected share comes from the applied config. Actual counts come from Nginx's own response headers.</p>
+      <div id="stats"><p class="empty">No requests yet.</p></div>
+      <div class="actions"><button type="button" id="clear">Clear results</button></div>
+
+      <h3>Recent requests</h3>
+      <div class="scroll-x">
+        <table id="log">
+          <thead><tr><th>#</th><th>Request id</th><th>split_clients</th><th>Route</th><th>Served by</th><th>Status</th><th>ms</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="explain-card">
+      <h2>How <code>split_clients</code> works</h2>
+      <ol>
+        <li><strong>Build the key.</strong> Nginx expands the first argument (for example <code>$request_id</code> or <code>$remote_addr</code>) into a string for this request.</li>
+        <li><strong>Hash it.</strong> The string is hashed with MurmurHash2 into a number from 0 to 4,294,967,295.</li>
+        <li><strong>Find the bucket.</strong> Percentages are stacked into ranges over that number space. <code>50%</code> owns the first half; <code>*</code> owns whatever is left. The first range that contains the hash wins, and its value is stored in <code>$split_target</code>.</li>
+        <li><strong>Route.</strong> The <code>map</code> copies <code>$split_target</code> into <code>$route</code>, unless the request carries an <code>X-Canary</code> header that forces a side. <code>proxy_pass http://$route</code> then sends the request to that upstream.</li>
+        <li><strong>Fall back.</strong> If the chosen upstream answers 502, 503 or 504 (for example because the New Nginx is stopped), <code>error_page … = @legacy</code> retries the request on the Legacy side.</li>
+      </ol>
+      <h3>Sticky or not?</h3>
+      <p>The key decides. <code>$request_id</code> is random for every request, so each request is an independent coin flip. <code>$remote_addr</code>, <code>$arg_user</code> or <code>$http_x_user</code> stay the same for a client, so that client always lands in the same bucket until the percentages change.</p>
+      <h3>Why two "Legacy Nginx" lifelines?</h3>
+      <p>The Legacy Nginx plays two roles in one process: the front door that clients connect to, and the legacy application on <code>127.0.0.1:8080</code>. A request routed to <code>legacy_nginx</code> leaves the front door and comes straight back into the same Nginx as a second request.</p>
+    </section>
+  </main>
+
+  <footer>Free-tier hosting: the Nginx container sleeps after 15 minutes without traffic and takes about a minute to wake up.</footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

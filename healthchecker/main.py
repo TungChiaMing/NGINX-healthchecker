@@ -2,11 +2,11 @@ import uvicorn
 from fastapi import FastAPI, Request
 from logging import LoggerAdapter
 
-from project.router import HealthCheckService
-from project.logger import Logger
+from healthchecker.router import HealthCheckService
+from healthchecker.logger import Logger
 
 import argparse
-from project.util import check_port
+from healthchecker.util import check_port
 
 def init_argparse():
     parser = argparse.ArgumentParser()

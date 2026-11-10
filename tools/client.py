@@ -1,6 +1,6 @@
 import requests
 from typing import Optional, List, Tuple
-from project.logger import Logger
+from healthchecker.logger import Logger
 import time
 
 import threading
