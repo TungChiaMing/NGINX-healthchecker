@@ -1,0 +1,9 @@
+# Render Blueprint: one free Docker web service that runs both Nginx processes.
+services:
+  - type: web
+    name: nginx-split-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./split-visualizer/backend/Dockerfile
+    dockerContext: ./split-visualizer/backend
+    healthCheckPath: /healthz
