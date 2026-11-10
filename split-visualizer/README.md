@@ -52,19 +52,15 @@ python3 -m http.server 5173 --directory split-visualizer/web
 
 ### 2. 前端 → Vercel
 
-1. 編輯 `web/config.js`,填入上一步的 Render 網址(結尾不要加 `/`):
-
-   ```js
-   window.SPLIT_BACKEND_URL = "https://nginx-split-demo.onrender.com";
-   ```
-
-2. commit 並 push。
-3. 到 https://vercel.com 用 GitHub 帳號登入,**Add New → Project**,匯入這個 repo。
-4. 設定:
+1. 到 https://vercel.com 用 GitHub 帳號登入,**Add New → Project**,匯入這個 repo。
+2. 設定:
    - **Root Directory**:`split-visualizer/web`
    - **Framework Preset**:Other
-   - Build Command 與 Output Directory 留空
-5. 按 **Deploy**。完成後打開 Vercel 給的網址即可。
+   - Build Command 與 Output Directory 不用填(`web/vercel.json` 已經定義 build command)
+   - **Environment Variables**:新增 `SPLIT_BACKEND_URL`,值是上一步的 Render 網址,結尾不要加 `/`,例如 `https://nginx-split-demo.onrender.com`
+3. 按 **Deploy**。完成後打開 Vercel 給的網址即可。
+
+後端網址不寫在 repo 裡:build 時 `vercel.json` 的 build command 會用 `SPLIT_BACKEND_URL` 產生 `config.js`。之後要換後端,只要改環境變數再 Redeploy。
 
 之後每次 push,Render 與 Vercel 都會自動重新部署。
 

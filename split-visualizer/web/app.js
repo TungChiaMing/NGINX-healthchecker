@@ -188,7 +188,7 @@ async function boot() {
   if (!BACKEND) {
     setStatus("bad", "No backend configured");
     $("notice").hidden = false;
-    $("notice").textContent = "Set window.SPLIT_BACKEND_URL in config.js to the URL of the Render service, then redeploy.";
+    $("notice").textContent = "Set the SPLIT_BACKEND_URL environment variable in Vercel to the URL of the Render service, then redeploy.";
     return;
   }
   for (let attempt = 0; attempt < 40; attempt++) {
