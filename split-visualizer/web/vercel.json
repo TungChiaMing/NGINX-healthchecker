@@ -1,3 +1,4 @@
 {
-  "buildCommand": "printf 'window.SPLIT_BACKEND_URL = \"%s\";\\n' \"$SPLIT_BACKEND_URL\" > config.js"
+  "buildCommand": "mkdir -p public && cp index.html app.js styles.css public/ && printf 'window.SPLIT_BACKEND_URL = \"%s\";\\n' \"$SPLIT_BACKEND_URL\" > public/config.js",
+  "outputDirectory": "public"
 }
